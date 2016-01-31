@@ -22,6 +22,9 @@ int main(int argc, char *argv[]) {
 			wordCount++;
 		}
 		prevC = c;
+		if (c == '\n') {
+			lineCount++;
+		}
 		while (c != EOF) {
 			c = getchar();
 			charCount++;
