@@ -1,0 +1,11 @@
+1. argv has a value of (char **) 0x7fffffffe5b8. This is the address of the pointer.
+
+2. It points to the command line arguments. The first one argv[0] is the wc file being run. The second argv[1] is the location of the file to be word-counted in memory.
+
+3. 'print main' shows the address of the main function at 0x40071d
+
+4. 'info stack' shows a list of stack frames. All of my code occurs in the function main, so it is the only frame on the stack.
+
+5. 'info frame' shows information about the current frame, including the location in memory of the current instruction pointer as well as the location of the saved instruction pointer, which will be executed when this frame is exited.
+
+6. 'info registers' shows the values stored in integer registers.

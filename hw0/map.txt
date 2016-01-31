@@ -1,0 +1,20 @@
+1. The addresses for the functions main and recur and the static variable stuff can be found in the Symbol Table. The others are not known until runtime.
+
+2. Overall File Header- Contains the file format and architecture it is built for, as well as the start address.
+
+Program Header- Information needed to prepare for execution.
+
+Dynamic Section- Information for dynamic linking.
+
+Sections- For locating any section of the object file by virtual or logical memory addressing or file offset.
+
+Symbol Table- For locating the program's symbolic definitions and references.
+
+
+3. The stack is growing down.
+
+4. 0x7ffdad4db78c - 0x7ffdad4db75c = 3 * 16 = 48 bytes.
+
+5. The heap contains the user variables buf1 and buf2. It is growing up from 0x1186010.
+
+6. 0x1186080 - 0x1186010 = 7 * 16 = 112. The malloc()ed variables only requested 100 bytes each, so there is an additional 12 byte section between them.

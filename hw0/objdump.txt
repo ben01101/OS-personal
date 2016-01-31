@@ -1,0 +1,7 @@
+1. The file format is elf64-x86-64, and it is compiled for i386:x86-64 architecture.
+
+2. There is a Program Header, a Dynamic Section, Version References,a list of Sections, a Symbol Table, and Disassembly of Sections: .init, .plt, .text, .fini
+
+3. The Symbol Table lists the function main with the same address found by gdb, 000000000040071d.
+
+4. The stack and the heap grow as the program is running, and their locations are not known by the program itself. Only a relative distance from the beginning location (provided by the OS) can be inferred from the compiled code.
