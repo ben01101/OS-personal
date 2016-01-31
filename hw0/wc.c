@@ -1,6 +1,11 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
+	// char d = '0';
+	// if (d == 0) {
+	// 	printf("True\n");
+	// }
+	// printf("d: %d\n", d);
 	if (argc > 2) {
 		fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
 		return 2;
@@ -65,5 +70,5 @@ int isWhitespace(int c) {
 	// 	return 1;
 	// }
 	// return 0;
-	return !isgraph(c);
+	return (!isgraph(c) && c != 0);
 }
