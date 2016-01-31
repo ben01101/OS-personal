@@ -7,6 +7,7 @@ int main(int argc, char *argv[]) {
 	}
 	// fprintf(stdout, "%d\n", argc);
 	int c;
+	int prevC;
 	int charCount = 0;
 	int wordCount = 0;   
 	int lineCount = 0;
@@ -18,7 +19,7 @@ int main(int argc, char *argv[]) {
 		while (c != EOF) {
 			c = getchar();
 			charCount++;
-			if (c == ' ' || c == '\n') {
+			if (isWhitespace(c) && !isWhitespace(prevC)) {
 				wordCount++;
 			}
 			if (c == '\n') {
@@ -26,7 +27,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		fprintf(stdout, "\t%d %d %d\n", lineCount, wordCount, charCount);
-		return;
+		return 0;
 	}
 	FILE* wcFile = fopen(argv[1], "r");
 	if (wcFile == NULL) {
@@ -38,7 +39,7 @@ int main(int argc, char *argv[]) {
 		if (feof(wcFile)) {
 			break;
 		}
-		if (c == ' ' || c == '\n') {
+		if (isWhitespace(c) && !isWhitespace(prevC)) {
 			wordCount++;
 		}
 		if (c == '\n') {
@@ -46,7 +47,16 @@ int main(int argc, char *argv[]) {
 		}
 		// fprintf(stdout, "%d\n", c);
 		charCount++;
+		prevC = c;
 	}
 	fclose(wcFile);
 	fprintf(stdout, "%d %d %d %s\n", lineCount, wordCount, charCount, argv[1]);
+	return 0;
+}
+
+int isWhitespace(int c) {
+	if (c == ' ' || c == '\n' || c == '\t' || c == '\0' || c == '\a' || c == '\b' || c == '\f' || c == '\r' || c == '\v') {
+		return 1;
+	}
+	return 0;
 }
