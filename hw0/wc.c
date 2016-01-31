@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 	int lineCount = 0;
 	if (argc == 1) { 
 		c = getchar();
-		if (!isWhitespace(c)) {
+		if (!isWhitespace(c) && c != 0) {
 			wordCount++;
 		}
 		prevC = c;
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 		if (feof(wcFile)) {
 			break;
 		}
-		if (!isWhitespace(c) && isWhitespace(prevC)) {
+		if (!isWhitespace(c) && isWhitespace(prevC) && c != 0) {
 			wordCount++;
 		}
 		if (c == '\n') {
