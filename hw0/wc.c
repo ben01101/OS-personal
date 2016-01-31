@@ -7,25 +7,30 @@ int main(int argc, char *argv[]) {
 	}
 	// fprintf(stdout, "%d\n", argc);
 	int c;
-	int prevC;
+	int prevC = ' ';
 	int charCount = 0;
 	int wordCount = 0;   
 	int lineCount = 0;
 	if (argc == 1) { 
 		c = getchar();
-		if (c != ' ' && c != '\n') {
+		if (!isWhitespace(c)) {
 			wordCount++;
 		}
+		prevC = c;
 		while (c != EOF) {
 			c = getchar();
 			charCount++;
-			if (isWhitespace(c) && !isWhitespace(prevC)) {
+			if (!isWhitespace(c) && isWhitespace(prevC)) {
 				wordCount++;
 			}
 			if (c == '\n') {
 				lineCount++;
 			}
+			prevC = c;
 		}
+		// if !isWhitespace(prevC) {
+		// 	wordCount++;
+		// }
 		fprintf(stdout, "\t%d %d %d\n", lineCount, wordCount, charCount);
 		return 0;
 	}
@@ -39,7 +44,7 @@ int main(int argc, char *argv[]) {
 		if (feof(wcFile)) {
 			break;
 		}
-		if (isWhitespace(c) && !isWhitespace(prevC)) {
+		if (!isWhitespace(c) && isWhitespace(prevC)) {
 			wordCount++;
 		}
 		if (c == '\n') {
@@ -55,8 +60,10 @@ int main(int argc, char *argv[]) {
 }
 
 int isWhitespace(int c) {
-	if (c == ' ' || c == '\n' || c == '\t' || c == '\0' || c == '\a' || c == '\b' || c == '\f' || c == '\r' || c == '\v') {
-		return 1;
-	}
-	return 0;
+	// if (c == ' ' || c == '\n' || c == '\t' || c == '\0' || c == '\a' 
+	// 	|| c == '\b' || c == '\f' || c == '\r' || c == '\v' || c == EOF) {
+	// 	return 1;
+	// }
+	// return 0;
+	return !isgraph(c);
 }
