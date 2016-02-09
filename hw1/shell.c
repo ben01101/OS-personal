@@ -182,26 +182,24 @@ int main(int argc, char *argv[]) {
           /* This is processed by the child */
           ;
           // printf("child says\n");
-            char* env = getenv("PATH");
-            // char* env = "blah:bleh:blue";
-            char envList[4096];
-            getList(envList, env, ':', ' ');
+          char* env = getenv("PATH");
+          // char* env = "blah:bleh:blue";
+          char envList[4096];
+          getList(envList, env, ':', ' ');
 
-            struct tokens *envTok = tokenize(envList);
-            for (int i = 0; i < (int) tokens_get_length(envTok); i++) {
-              char tmp[200];
-              strcpy(tmp, tokens_get_token(envTok, i));
-              strcat(tmp, "/");
-              strcat(tmp, args[0]);
-              // printf("looking..\n");
-              execv(tmp, args);
-              
-            }
-            // printf("\n");
+          struct tokens *envTok = tokenize(envList);
+          for (int i = 0; i < (int) tokens_get_length(envTok); i++) {
+            char tmp[200];
+            strcpy(tmp, tokens_get_token(envTok, i));
+            strcat(tmp, "/");
+            strcat(tmp, args[0]);
+            // printf("looking..\n");
+            execv(tmp, args);
+            
+          }
+          // printf("\n");
 
-            execv (args[0], args);
-          // }
-          // printf(stdout);
+          execv (args[0], args);
           printf("Uh oh! %s\n", strerror(errno));
           exit(EXIT_FAILURE);
           break;
