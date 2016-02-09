@@ -128,6 +128,20 @@ void init_shell() {
   }
 }
 
+void getList(char* newStr, char* str, char d, char e) {
+  for (int i = 0; ; i++) {
+    if (str[i] == '\0') {
+      break;
+    }
+    if (str[i] == d) {
+      newStr[i] = e;
+      continue;
+    } 
+    newStr[i] = str[i];
+  }
+  return;
+}
+
 int main(int argc, char *argv[]) {
   init_shell();
 
@@ -153,7 +167,6 @@ int main(int argc, char *argv[]) {
       int numArgs = tokens_get_length(tokens);
       char *args[numArgs + 1];
       pid_t pid;
-      // int i;
 
       for (int i = 0; i < numArgs; i++) {
         args[i] = tokens_get_token(tokens, i);
@@ -167,7 +180,27 @@ int main(int argc, char *argv[]) {
           break;
         case 0:
           /* This is processed by the child */
-          execv (args[0], args);
+          ;
+          // printf("child says\n");
+            char* env = getenv("PATH");
+            // char* env = "blah:bleh:blue";
+            char envList[4096];
+            getList(envList, env, ':', ' ');
+
+            struct tokens *envTok = tokenize(envList);
+            for (int i = 0; i < (int) tokens_get_length(envTok); i++) {
+              char tmp[200];
+              strcpy(tmp, tokens_get_token(envTok, i));
+              strcat(tmp, "/");
+              strcat(tmp, args[0]);
+              // printf("looking..\n");
+              execv(tmp, args);
+              
+            }
+            // printf("\n");
+
+            execv (args[0], args);
+          // }
           // printf(stdout);
           printf("Uh oh! %s\n", strerror(errno));
           exit(EXIT_FAILURE);
