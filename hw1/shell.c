@@ -12,7 +12,7 @@
 
 #include "tokenizer.h"
 
-// #include <process.h>
+#include <fcntl.h>
 
 /* Whether the shell is connected to an actual terminal or not. */
 bool shell_is_interactive;
@@ -164,52 +164,114 @@ int main(int argc, char *argv[]) {
     } else {
       /* REPLACE this to run commands as programs. */
       // shell_pgid = getpid();
+      int redirect = 0, feed = 0, j = 0;
       int numArgs = tokens_get_length(tokens);
-      char *args[numArgs + 1];
+      char *process[numArgs + 1];
+      char *file[numArgs];
+      file[0] = NULL;
       pid_t pid;
 
       for (int i = 0; i < numArgs; i++) {
-        args[i] = tokens_get_token(tokens, i);
+        char* arg = tokens_get_token(tokens, i);
+        if (*arg == '>') {
+          redirect = 1;
+          j = i + 1;
+          process[i] = NULL;
+          continue;
+        }
+        if (*arg == '<') {
+          feed = 1;
+          j = i + 1;
+          process[i] = NULL;
+          continue;
+        }
+        if (redirect || feed) {
+          file[i-j] = arg;
+          process[i] = NULL;
+        } else {
+          process[i] = arg;
+        }
       }
-      args[numArgs] = NULL;
+      process[numArgs] = NULL;
+      file[numArgs-j] = NULL;
 
-      switch ( (pid = fork()) ) {
-        case -1:
-          /* Fork() has failed */
-          perror ("fork");
-          break;
-        case 0:
-          /* This is processed by the child */
-          ;
-          // printf("child says\n");
-          char* env = getenv("PATH");
-          // char* env = "blah:bleh:blue";
-          char envList[4096];
-          getList(envList, env, ':', ' ');
+      // printf("process: [");
+      // for (int i = 0; process[i] != NULL; i++) {
+      //   printf("%s, ", process[i]);
+      // }
+      // printf("]\n");
+      
+      // printf("file: [");
+      // for (int i = 0; file[i] != '\0'; i++) {
+      //   printf("%s, ", file[i]);
+      // }
+      // printf("]\n");
 
-          struct tokens *envTok = tokenize(envList);
-          for (int i = 0; i < (int) tokens_get_length(envTok); i++) {
-            char tmp[200];
-            strcpy(tmp, tokens_get_token(envTok, i));
-            strcat(tmp, "/");
-            strcat(tmp, args[0]);
-            // printf("looking..\n");
-            execv(tmp, args);
-            
-          }
-          // printf("\n");
-
-          execv (args[0], args);
-          printf("Uh oh! %s\n", strerror(errno));
-          exit(EXIT_FAILURE);
-          break;
-        default:
-          /* This is processed by the parent */
-          wait(NULL);
-          break;
-
+      int fileError = 0;
+      int fromFile, toFile;
+      int tempfd;
+      if (redirect) {
+        if ((toFile = open(file[0], O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0){
+          fprintf(stderr, "File not found: \"%s\"\n", file[0]);
+          fileError = 1;
+        } else {
+          tempfd = dup(1);
+          dup2(toFile, 1);
+        }
       }
-      // End of parent program
+      if (feed) {
+        if ((fromFile = open(file[0], O_RDONLY)) < 0){
+          fprintf(stderr, "File not found: \"%s\"\n", file[0]);
+          fileError = 1;
+        } else {
+          tempfd = dup(0);
+          dup2(fromFile, 0);
+        }
+      }
+      if (!fileError) {
+        switch ( (pid = fork()) ) {
+          case -1:
+            /* Fork() has failed */
+            perror ("fork");
+            break;
+          case 0:
+            /* This is processed by the child */
+            ;
+            // printf("child says\n");
+            char* env = getenv("PATH");
+            // char* env = "blah:bleh:blue";
+            char envList[4096];
+            getList(envList, env, ':', ' ');
+
+            struct tokens *envTok = tokenize(envList);
+            for (int i = 0; i < (int) tokens_get_length(envTok); i++) {
+              char tmp[200];
+              strcpy(tmp, tokens_get_token(envTok, i));
+              strcat(tmp, "/");
+              strcat(tmp, process[0]);
+              // printf("looking.. %s\n", tmp);
+              execv(tmp, process);
+            }
+            execv (process[0], process);
+            printf("Uh oh! %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+            break;
+          default:
+            /* This is processed by the parent */
+            wait(NULL);
+            break;
+
+        }
+        if (redirect) {
+          dup2(tempfd, 1);
+          close(toFile);
+        }
+        if (feed) {
+          dup2(tempfd, 0);
+          close(fromFile);
+        }
+        // End of parent program
+      }
     }
       // fprintf(stdout, "This shell doesn't know how to run programs.\n");
 
