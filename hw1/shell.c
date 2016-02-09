@@ -12,6 +12,8 @@
 
 #include "tokenizer.h"
 
+// #include <process.h>
+
 /* Whether the shell is connected to an actual terminal or not. */
 bool shell_is_interactive;
 
@@ -147,8 +149,38 @@ int main(int argc, char *argv[]) {
       cmd_table[fundex].fun(tokens);
     } else {
       /* REPLACE this to run commands as programs. */
-      fprintf(stdout, "This shell doesn't know how to run programs.\n");
+      // shell_pgid = getpid();
+      int numArgs = tokens_get_length(tokens);
+      char *args[numArgs + 1];
+      pid_t pid;
+      // int i;
+
+      for (int i = 0; i < numArgs; i++) {
+        args[i] = tokens_get_token(tokens, i);
+      }
+      args[numArgs] = NULL;
+
+      switch ( (pid = fork()) ) {
+        case -1:
+          /* Fork() has failed */
+          perror ("fork");
+          break;
+        case 0:
+          /* This is processed by the child */
+          execv (args[0], args);
+          // printf(stdout);
+          printf("Uh oh! %s\n", strerror(errno));
+          exit(EXIT_FAILURE);
+          break;
+        default:
+          /* This is processed by the parent */
+          wait(NULL);
+          break;
+
+      }
+      // End of parent program
     }
+      // fprintf(stdout, "This shell doesn't know how to run programs.\n");
 
     if (shell_is_interactive)
       /* Please only print shell prompts when standard input is not a tty */
