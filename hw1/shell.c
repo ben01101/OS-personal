@@ -128,7 +128,9 @@ void init_shell() {
   }
 }
 
-void getList(char* newStr, char* str, char d, char e) {
+/* Swap character d for character e in string str. Preserves str. Returns
+a new string newStr. */
+void charSwap(char* newStr, char* str, char d, char e) {
   for (int i = 0; ; i++) {
     if (str[i] == '\0') {
       break;
@@ -140,6 +142,59 @@ void getList(char* newStr, char* str, char d, char e) {
     newStr[i] = str[i];
   }
   return;
+}
+
+/* Extract program name and args and filename to read from or write to. */
+int program_Parse(struct tokens *tokens, int numTokens, char *process[], 
+          char *fileIn, char *fileOut, bool *redirect, bool *feed) {
+  int j = 0;
+  // int numArgs = tokens_get_length(tokens);
+  for (int i = 0; i < numTokens; i++) {
+    char* arg = tokens_get_token(tokens, i);
+    int file = 0;
+    if (*arg == '>') {
+      file = 1;
+      // j = i + 1;
+      // process[i] = NULL;
+      // continue;
+    }
+    if (*arg == '<') {
+      file = 2;
+      // j = i + 1;
+      // process[i] = NULL;
+      // continue;
+    }
+    if (file) {
+      if (file == 1) {
+        if (*redirect) {
+          return 0;
+        }
+        *redirect = true;
+        process[i] = NULL;
+        i++;
+        arg = tokens_get_token(tokens, i);        
+        strcpy(fileOut, arg);
+      } else {
+        if (*feed) {
+          return 0;          
+        }
+        *feed = true;
+        process[i] = NULL;
+        i++;
+        arg = tokens_get_token(tokens, i);        
+        strcpy(fileIn, arg);        
+      }
+      // process[i] = NULL;
+    } else {
+      if (*redirect || *feed) {
+        return 0;                  
+      }
+      process[i] = arg;
+    }
+  }
+process[numTokens] = NULL;
+// file[1] = NULL;
+return 1;
 }
 
 int main(int argc, char *argv[]) {
@@ -164,67 +219,59 @@ int main(int argc, char *argv[]) {
     } else {
       /* REPLACE this to run commands as programs. */
       // shell_pgid = getpid();
-      int redirect = 0, feed = 0, j = 0;
-      int numArgs = tokens_get_length(tokens);
-      char *process[numArgs + 1];
-      char *file[numArgs];
-      file[0] = NULL;
+      bool redirect = false, feed = false;
+      int numTokens = tokens_get_length(tokens);
+      char *process[numTokens + 1];
+      char *fileIn = (char*) malloc(1024 * sizeof(char));
+      char *fileOut = (char*) malloc(1024 * sizeof(char));
+      // file[0] = NULL;
       pid_t pid;
 
-      for (int i = 0; i < numArgs; i++) {
-        char* arg = tokens_get_token(tokens, i);
-        if (*arg == '>') {
-          redirect = 1;
-          j = i + 1;
-          process[i] = NULL;
-          continue;
-        }
-        if (*arg == '<') {
-          feed = 1;
-          j = i + 1;
-          process[i] = NULL;
-          continue;
-        }
-        if (redirect || feed) {
-          file[i-j] = arg;
-          process[i] = NULL;
-        } else {
-          process[i] = arg;
-        }
-      }
-      process[numArgs] = NULL;
-      file[numArgs-j] = NULL;
 
-      // printf("process: [");
-      // for (int i = 0; process[i] != NULL; i++) {
-      //   printf("%s, ", process[i]);
-      // }
-      // printf("]\n");
+      if (!program_Parse(tokens, numTokens, process, fileIn, fileOut, &redirect, &feed)) {
+        fprintf(stderr, "Invalid usage.\n");
+        fprintf(stdout, "%d: ", ++line_num);
+        tokens_destroy(tokens);
+        continue;
+      }        
+      printf("redirect: %d\n", redirect);
+      printf("feed: %d\n", feed);
+      printf("process: [");
+      for (int i = 0; process[i] != NULL; i++) {
+        printf("%s, ", process[i]);
+      }
+      printf("]\n");
       
-      // printf("file: [");
-      // for (int i = 0; file[i] != '\0'; i++) {
-      //   printf("%s, ", file[i]);
-      // }
-      // printf("]\n");
+      printf("fileIn: %s\n", fileIn);
+      printf("fileOut: %s\n", fileOut);
 
       int fileError = 0;
       int fromFile, toFile;
-      int tempfd;
+      int tempfd, tempfd2;
       if (redirect) {
-        if ((toFile = open(file[0], O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0){
-          fprintf(stderr, "File not found: \"%s\"\n", file[0]);
+        if ((toFile = open(fileOut, O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0){
+          fprintf(stderr, "File not found: \"%s\"\n", fileOut);
           fileError = 1;
         } else {
           tempfd = dup(1);
           dup2(toFile, 1);
         }
+        // if (feed) { //Redirect and Feed.
+        //   if ((fromFile = open(fileOut, O_RDONLY)) < 0){
+        //     fprintf(stderr, "File not found: \"%s\"\n", fileOut);
+        //     fileError = 1;
+        //   } else {
+        //     tempfd2 = dup(0);
+        //     dup2(fromFile, 0);
+        //   }
+        // }
       }
       if (feed) {
-        if ((fromFile = open(file[0], O_RDONLY)) < 0){
-          fprintf(stderr, "File not found: \"%s\"\n", file[0]);
+        if ((fromFile = open(fileIn, O_RDONLY)) < 0){
+          fprintf(stderr, "File not found: \"%s\"\n", fileIn);
           fileError = 1;
         } else {
-          tempfd = dup(0);
+          tempfd2 = dup(0);
           dup2(fromFile, 0);
         }
       }
@@ -241,7 +288,7 @@ int main(int argc, char *argv[]) {
             char* env = getenv("PATH");
             // char* env = "blah:bleh:blue";
             char envList[4096];
-            getList(envList, env, ':', ' ');
+            charSwap(envList, env, ':', ' ');
 
             struct tokens *envTok = tokenize(envList);
             for (int i = 0; i < (int) tokens_get_length(envTok); i++) {
@@ -252,7 +299,7 @@ int main(int argc, char *argv[]) {
               // printf("looking.. %s\n", tmp);
               execv(tmp, process);
             }
-            execv (process[0], process);
+            // execv (process[0], process);
             printf("Uh oh! %s\n", strerror(errno));
             exit(EXIT_FAILURE);
             break;
@@ -267,7 +314,7 @@ int main(int argc, char *argv[]) {
           close(toFile);
         }
         if (feed) {
-          dup2(tempfd, 0);
+          dup2(tempfd2, 0);
           close(fromFile);
         }
         // End of parent program
