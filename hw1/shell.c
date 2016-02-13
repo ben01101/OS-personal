@@ -30,6 +30,7 @@ int cmd_exit(struct tokens *tokens);
 int cmd_help(struct tokens *tokens);
 int cmd_pwd(struct tokens *tokens);
 int cmd_cd(struct tokens *tokens);
+int cmd_wait(struct tokens *tokens);
 
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
@@ -46,6 +47,7 @@ fun_desc_t cmd_table[] = {
   {cmd_exit, "exit", "exit the command shell"},
   {cmd_pwd, "pwd", "print working directory"},
   {cmd_cd, "cd", "change directory"},
+  {cmd_wait, "wait", "disallows input until background processes are finished"},
 };
 
 
@@ -68,6 +70,12 @@ int cmd_pwd(struct tokens *tokens) {
        printf("Current working dir: %s\n", cwd);
    else
        perror("getcwd() error");
+  return 1;
+}
+
+/* disallows input until background processes are finished */
+int cmd_wait(struct tokens *tokens) {
+  wait(NULL);
   return 1;
 }
 
@@ -146,57 +154,55 @@ void charSwap(char* newStr, char* str, char d, char e) {
 
 /* Extract program name and args and filename to read from or write to. */
 int program_Parse(struct tokens *tokens, int numTokens, char *process[], 
-          char *fileIn, char *fileOut, bool *redirect, bool *feed) {
-  int j = 0;
-  // int numArgs = tokens_get_length(tokens);
-  for (int i = 0; i < numTokens; i++) {
-    char* arg = tokens_get_token(tokens, i);
-    int file = 0;
+          char *fileIn, char *fileOut, bool *redirect, bool *feed, bool *background) {
+  char *arg;
+  int i;
+  for (i = 0; i < numTokens; i++) {
+    arg = tokens_get_token(tokens, i);
+    // int file = 0;
     if (*arg == '>') {
-      file = 1;
-      // j = i + 1;
-      // process[i] = NULL;
-      // continue;
+      if (*redirect) {
+        return 0;
+      }
+      *redirect = true;
+      process[i] = NULL;
+      i++;
+      arg = tokens_get_token(tokens, i);        
+      strcpy(fileOut, arg);
+      process[i] = NULL;
+      continue;
     }
     if (*arg == '<') {
-      file = 2;
-      // j = i + 1;
-      // process[i] = NULL;
-      // continue;
-    }
-    if (file) {
-      if (file == 1) {
-        if (*redirect) {
-          return 0;
-        }
-        *redirect = true;
-        process[i] = NULL;
-        i++;
-        arg = tokens_get_token(tokens, i);        
-        strcpy(fileOut, arg);
-      } else {
-        if (*feed) {
-          return 0;          
-        }
-        *feed = true;
-        process[i] = NULL;
-        i++;
-        arg = tokens_get_token(tokens, i);        
-        strcpy(fileIn, arg);        
+      if (*feed) {
+        return 0;          
       }
-      // process[i] = NULL;
-    } else {
-      if (*redirect || *feed) {
-        return 0;                  
-      }
-      process[i] = arg;
+      *feed = true;
+      process[i] = NULL;
+      i++;
+      arg = tokens_get_token(tokens, i);        
+      strcpy(fileIn, arg);
+      process[i] = NULL;
+      continue;
     }
+    if (*arg == '&') {
+      *background = true;
+      process[i] = NULL;
+      continue;
+    }
+    if (*redirect || *feed) {
+      return 0;                  
+    }
+    process[i] = arg;
   }
-process[numTokens] = NULL;
-// file[1] = NULL;
+process[i] = NULL;
 return 1;
 }
-
+void sigint_handler(int sig) {
+  // tcsetpgrp(getppid());
+  printf("in sigint handler with %d\n", sig);
+  // signal(SIGINT, SIG_IGN);
+  // exit(0);
+}
 int main(int argc, char *argv[]) {
   init_shell();
 
@@ -219,7 +225,7 @@ int main(int argc, char *argv[]) {
     } else {
       /* REPLACE this to run commands as programs. */
       // shell_pgid = getpid();
-      bool redirect = false, feed = false;
+      bool redirect = false, feed = false, background = false;
       int numTokens = tokens_get_length(tokens);
       char *process[numTokens + 1];
       char *fileIn = (char*) malloc(1024 * sizeof(char));
@@ -228,7 +234,7 @@ int main(int argc, char *argv[]) {
       pid_t pid;
 
 
-      if (!program_Parse(tokens, numTokens, process, fileIn, fileOut, &redirect, &feed)) {
+      if (!program_Parse(tokens, numTokens, process, fileIn, fileOut, &redirect, &feed, &background)) {
         fprintf(stderr, "Invalid usage.\n");
         fprintf(stdout, "%d: ", ++line_num);
         tokens_destroy(tokens);
@@ -236,6 +242,7 @@ int main(int argc, char *argv[]) {
       }        
       printf("redirect: %d\n", redirect);
       printf("feed: %d\n", feed);
+      printf("background: %d\n", background);
       printf("process: [");
       for (int i = 0; process[i] != NULL; i++) {
         printf("%s, ", process[i]);
@@ -256,15 +263,6 @@ int main(int argc, char *argv[]) {
           tempfd = dup(1);
           dup2(toFile, 1);
         }
-        // if (feed) { //Redirect and Feed.
-        //   if ((fromFile = open(fileOut, O_RDONLY)) < 0){
-        //     fprintf(stderr, "File not found: \"%s\"\n", fileOut);
-        //     fileError = 1;
-        //   } else {
-        //     tempfd2 = dup(0);
-        //     dup2(fromFile, 0);
-        //   }
-        // }
       }
       if (feed) {
         if ((fromFile = open(fileIn, O_RDONLY)) < 0){
@@ -284,7 +282,19 @@ int main(int argc, char *argv[]) {
           case 0:
             /* This is processed by the child */
             ;
-            // printf("child says\n");
+            // printf("child PID: %d\n", getpid());
+            setpgrp();
+            signal(SIGINT, sigint_handler);
+            signal(SIGQUIT, sigint_handler);
+            // signal(SIGTTOU, sigint_handler);
+            signal(SIGTSTP, SIG_IGN);
+            // if (tcsetpgrp(0, getpid()) == -1) {
+            //   printf("Fuck");
+            //   exit(EXIT_FAILURE);
+            // }
+            // printf("tcset: %d", tcsetpgrp(0, getpgrp()));
+
+            printf("child GPID: %d\n input FG: %d\n output FG: %d\n", getpgrp(), tcgetpgrp(0), tcgetpgrp(1));
             char* env = getenv("PATH");
             // char* env = "blah:bleh:blue";
             char envList[4096];
@@ -299,14 +309,29 @@ int main(int argc, char *argv[]) {
               // printf("looking.. %s\n", tmp);
               execv(tmp, process);
             }
-            // execv (process[0], process);
+            execv (process[0], process);
             printf("Uh oh! %s\n", strerror(errno));
             exit(EXIT_FAILURE);
             break;
           default:
             /* This is processed by the parent */
-            wait(NULL);
+            ;
+            signal(SIGTTIN, SIG_IGN);
+            signal(SIGTTOU, SIG_IGN);
+            if (!background) {
+              tcsetpgrp(0, pid);
+            }
+            printf("parent PID: %d\n", getpid());
+            printf("parent GPID: %d\n input FG: %d\n output FG: %d\n", getpgrp(), tcgetpgrp(0), tcgetpgrp(1));
+            // printf("tcset: %d\n", r);
+            // signal(SIGINT, SIG_IGN);
+            if (!background) {
+              wait(NULL);
+            }
+            // signal(SIGINT, SIG_DFL);
+            tcsetpgrp(0, getpid());
             break;
+            // End of parent program
 
         }
         if (redirect) {
@@ -317,7 +342,6 @@ int main(int argc, char *argv[]) {
           dup2(tempfd2, 0);
           close(fromFile);
         }
-        // End of parent program
       }
     }
       // fprintf(stdout, "This shell doesn't know how to run programs.\n");
