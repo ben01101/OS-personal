@@ -240,17 +240,17 @@ int main(int argc, char *argv[]) {
         tokens_destroy(tokens);
         continue;
       }        
-      printf("redirect: %d\n", redirect);
-      printf("feed: %d\n", feed);
-      printf("background: %d\n", background);
-      printf("process: [");
-      for (int i = 0; process[i] != NULL; i++) {
-        printf("%s, ", process[i]);
-      }
-      printf("]\n");
+      // printf("redirect: %d\n", redirect);
+      // printf("feed: %d\n", feed);
+      // printf("background: %d\n", background);
+      // printf("process: [");
+      // for (int i = 0; process[i] != NULL; i++) {
+      //   printf("%s, ", process[i]);
+      // }
+      // printf("]\n");
       
-      printf("fileIn: %s\n", fileIn);
-      printf("fileOut: %s\n", fileOut);
+      // printf("fileIn: %s\n", fileIn);
+      // printf("fileOut: %s\n", fileOut);
 
       int fileError = 0;
       int fromFile, toFile;
@@ -294,7 +294,7 @@ int main(int argc, char *argv[]) {
             // }
             // printf("tcset: %d", tcsetpgrp(0, getpgrp()));
 
-            printf("child GPID: %d\n input FG: %d\n output FG: %d\n", getpgrp(), tcgetpgrp(0), tcgetpgrp(1));
+            // printf("child GPID: %d\n input FG: %d\n output FG: %d\n", getpgrp(), tcgetpgrp(0), tcgetpgrp(1));
             char* env = getenv("PATH");
             // char* env = "blah:bleh:blue";
             char envList[4096];
@@ -321,8 +321,8 @@ int main(int argc, char *argv[]) {
             if (!background) {
               tcsetpgrp(0, pid);
             }
-            printf("parent PID: %d\n", getpid());
-            printf("parent GPID: %d\n input FG: %d\n output FG: %d\n", getpgrp(), tcgetpgrp(0), tcgetpgrp(1));
+            // printf("parent PID: %d\n", getpid());
+            // printf("parent GPID: %d\n input FG: %d\n output FG: %d\n", getpgrp(), tcgetpgrp(0), tcgetpgrp(1));
             // printf("tcset: %d\n", r);
             // signal(SIGINT, SIG_IGN);
             if (!background) {
