@@ -67,7 +67,7 @@ int cmd_exit(struct tokens *tokens) {
 int cmd_pwd(struct tokens *tokens) {
   char cwd[1024];
   if (getcwd(cwd, sizeof(cwd)) != NULL)
-       printf("Current working dir: %s\n", cwd);
+       printf("%s\n", cwd);
    else
        perror("getcwd() error");
   return 1;
@@ -75,7 +75,10 @@ int cmd_pwd(struct tokens *tokens) {
 
 /* disallows input until background processes are finished */
 int cmd_wait(struct tokens *tokens) {
-  wait(NULL);
+  // printf("Wait Pid: %d\nWait parent: %d\n", getpid(), getppid());
+  while (wait(NULL) != -1) {
+
+  }
   return 1;
 }
 
