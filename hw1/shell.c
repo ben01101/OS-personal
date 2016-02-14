@@ -96,7 +96,7 @@ int cmd_cd(struct tokens *tokens) {
       // cmd_pwd(tokens);
       return -1;  /* No use continuing */
     } else { 
-      cmd_pwd(tokens);
+      // cmd_pwd(tokens);
       return 0;
     }
   } else {
