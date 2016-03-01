@@ -28,6 +28,33 @@ char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
 
+char *getStringFromFile (FILE *file) {
+    fseek(file, 0, SEEK_END);
+    long fsize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *string = malloc(fsize + 1);
+
+    fread(string, fsize, 1, file);
+
+
+    FILE *wp;
+    wp = fopen("test_file.txt", "wb");
+    fwrite(string, fsize, 1, wp);
+    fclose(file);
+    fclose(wp);
+    // string[fsize] = '\0';
+
+    // char *retString = malloc(fsize + 50);
+    // char front[] = "<html><body><a href=’/’>";
+    // char back[] = "</a></body></html>";
+
+    // strcpy(retString, front);
+    // strcat(retString, string);
+    // strcat(retString, back);
+    return string;
+}
+
 /*
  * Reads an HTTP request from stream (fd), and writes an HTTP response
  * containing:
@@ -42,18 +69,144 @@ int server_proxy_port;
 void handle_files_request(int fd) {
 
   /* YOUR CODE HERE (Feel free to delete/modify the existing code below) */
-
+  int isDir;
   struct http_request *request = http_request_parse(fd);
 
-  http_start_response(fd, 200);
-  http_send_header(fd, "Content-type", "text/html");
-  http_end_headers(fd);
-  http_send_string(fd,
-      "<center>"
-      "<h1>Welcome to httpserver!</h1>"
-      "<hr>"
-      "<p>Nothing's here yet.</p>"
-      "</center>");
+  char *files = server_files_directory;
+  char *path = request->path;
+
+  if (*(path + strlen(path) - 1) == '/') {
+    isDir = 1;
+  } else {
+    isDir = 0;
+  }
+
+  printf("method: %s\n", request->method);
+  printf("path: %s\n", path);
+  printf("dir: %d\n", isDir);
+
+  char *path_requested = strcat(files, ++path);
+  strcat(path_requested, "\0");
+  printf("path requested: %s\n", path_requested);
+
+struct stat s;
+if( stat(path_requested, &s) == 0 )
+{
+    if( s.st_mode & S_IFDIR ) /* path_requested is a directory. */
+    {
+      char index[] = "index.html";
+      char indexFilename[200];
+      strcpy(indexFilename, path_requested);
+      strcat(indexFilename, index);
+      FILE *indexFile = fopen(indexFilename, "rb");
+
+      if (indexFile == NULL) { /* No index file in directory requested. */
+
+          DIR *dir = opendir(path_requested);
+          struct dirent *dp;
+          char retString[500];
+          while ((dp = readdir (dir)) != NULL) {
+            // printf("Directory: %s\n", dp->d_name);
+            // if (dp->d_type != DT_DIR && dp->d_type != DT_REG) continue;
+            if (strcmp(dp->d_name, ".") == 0) continue;
+            if (strcmp(dp->d_name, "..") == 0) continue;
+            // char test[3];
+            // strcpy(test, 3, dp->d_name);
+            // if (strcmp(test, "._.") == 0) continue;
+            char str[200];
+            snprintf(str, sizeof str, "<p><A href=\"./%s\">%s</A></p>\n", dp->d_name, dp->d_name);
+            // printf("Directory: %s\n", str);
+            strcat(retString, str);
+          }
+            printf("retString: \n%s\n", retString);
+
+          char pStr[200];
+          strcpy(pStr, path_requested);
+          char* last_backslash = strrchr(pStr, '/'); 
+          printf("last_backslash + 1 = %s\n", last_backslash + 1);
+          if (last_backslash++ == '\0') {
+            printf("yep\n");
+            *last_backslash = '\0';
+            last_backslash = strrchr(pStr, '/');
+          }
+          *last_backslash = '\0';
+          printf("parent Dir: %s\n", pStr);
+          char parentDir[200];
+          snprintf(parentDir, sizeof(parentDir), "<a href=\"../\">%s</a>", pStr);
+
+          http_start_response(fd, 200);
+          http_send_header(fd, "Content-type", "text/html");
+          http_end_headers(fd);
+          http_send_string(fd, retString);
+              // <a href="../">"Parent directory"</a>
+              // "<p>okayokayokay</p>");
+      } else { /* Index file in directory requested. */
+
+          http_start_response(fd, 200);
+          http_send_header(fd, "Content-type", "text/html");
+          http_end_headers(fd);
+          http_send_string(fd, getStringFromFile(indexFile));
+      }
+      fclose(indexFile);    }
+    else if( s.st_mode & S_IFREG ) /* path_requested is a file. */
+    {
+      // printf("It's a file.\n");
+
+      FILE *requestedFile = fopen(path_requested, "rb");
+      fseek(requestedFile, 0, SEEK_END);
+      size_t fsize = ftell(requestedFile);
+      fseek(requestedFile, 0, SEEK_SET);
+
+      char *returnString = getStringFromFile(requestedFile);
+
+      printf("size: %ld\n", fsize);
+      char len[20];
+      sprintf(len, "%zu", fsize);
+      http_start_response(fd, 200);
+      // char *mime = http_get_mime_type(path_requested);
+      // strcat(mime, "\r\n");
+      // printf("Type: %s\n", mime);
+      http_send_header(fd, "Content-type", http_get_mime_type(path_requested));
+      // http_get_mime_type(path_requested)
+      http_send_header(fd, "Content-length", len);
+      http_end_headers(fd);
+      // http_send_string( fd, 
+      //   "<html>"
+      //   "<body>"
+      //   );
+      http_send_data(fd, returnString, fsize);
+          // "<center>"
+          // "<h1>Welcome to httpserver!</h1>"
+          // "<hr>"
+          // "<p>Nothing's here yet.</p>"
+          // "</center>");        
+      // http_send_string( fd, "</p>");
+      // http_send_string( fd, 
+      //   "</html>"
+      //   "</body>"
+      //   );
+
+      // http_send_string(fd,
+      //     "<center>"
+      //     "<h1>Welcome to httpserver!</h1>"
+      //     "<hr>"
+      //     "<p>Nothing's here yet.</p>"
+      //     "</center>");
+      // http_send_data(int fd, char *data, size_t size)
+    }
+    else
+    {
+        //something else
+    }
+}
+else
+{
+    //error
+printf("Error here.\n");
+http_start_response(fd, 404);
+http_send_header(fd, "Content-type", "text/html\r\n");
+http_send_string(fd, "Error: 404 Not Found");
+}
 
 }
 
