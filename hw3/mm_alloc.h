@@ -8,6 +8,23 @@
 
 #include <stdlib.h>
 
+struct metadata {
+	int size;
+	int is_free;
+	struct metadata *next;
+	struct metadata *prev;
+};
+
+struct list {
+	struct metadata *head;
+	struct metadata *tail;
+};
+
+void list_init(struct list *l);
+struct metadata *split_data_block(struct metadata *current, int size);
+void mm_clear(struct metadata *ptr);
+
+
 void *mm_malloc(size_t size);
 void *mm_realloc(void *ptr, size_t size);
 void mm_free(void *ptr);
