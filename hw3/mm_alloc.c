@@ -13,9 +13,9 @@ static struct list metaList;
 static struct metadata start;
 static struct metadata end;
 
+/* Initialize the metaList. */
 void list_init(struct list *l) {
-	// struct metadata start;
-	// struct metadata end;
+	// printf("initializing list.\n");
 	start.size = 0;
 	start.is_free = 0;
 	start.next = &end;
@@ -36,7 +36,7 @@ void *mm_malloc(size_t size) {
     if (metaList.head == NULL) list_init(&metaList);
 
     int metasize = sizeof(struct metadata);
-
+    // printf("metasize: %d\n", metasize);
     struct metadata *block_to_use = metaList.head->next;
     while (block_to_use != metaList.tail) {
     	if (block_to_use->is_free) {
@@ -49,6 +49,7 @@ void *mm_malloc(size_t size) {
     				// Perhaps reuse this block.
     				block_to_use->size = size;
     				block_to_use->is_free = 0;
+    				mm_clear(block_to_use);
     				return block_to_use + 1;
     				// if (s == size) {
     				// 	// Definitely use this block.
@@ -56,9 +57,11 @@ void *mm_malloc(size_t size) {
     			}
     		} 
     	}
+    	block_to_use = block_to_use->next;
     }
-    struct metadata *this_block = (struct metadata *)
-    	sbrk (sizeof (struct metadata) + size);
+    struct metadata *this_block = sbrk (metasize + size);
+    // printf("Adding block.\n");
+    if (this_block == NULL) return NULL;
     this_block->size = size;
     this_block->is_free = 0;
     this_block->prev = metaList.tail->prev;
@@ -66,6 +69,7 @@ void *mm_malloc(size_t size) {
     metaList.tail->prev->next = this_block;
     metaList.tail->prev = this_block;
 
+    mm_clear(this_block);
     return this_block + 1;
 }
 
@@ -77,10 +81,13 @@ struct metadata *split_data_block(struct metadata *current, int size) {
 	// assert(current->is_free);
 	// assert(current->size >= size + metasize);
 
+	// printf("splitting\n");
 	struct metadata *new;
-	new = current;
 	struct metadata *old;
-	old = (struct metadata *) ((void *) (current) + metasize + size);
+	old = (void *) (current) + metasize + size;
+	new = current;
+	current->next->prev = old;
+	current->prev->next = new;
 
 	old->size = current->size - (size + metasize);
 	old->is_free = 1;
@@ -92,8 +99,6 @@ struct metadata *split_data_block(struct metadata *current, int size) {
 	new->next = old;
 	new->prev = current->prev;
 
-	current->next->prev = old;
-	current->prev->next = new;
 	mm_clear(new);
 	return new;
 }
@@ -101,20 +106,91 @@ struct metadata *split_data_block(struct metadata *current, int size) {
 /* To zero-fill the data in a memory block. */
 void mm_clear(struct metadata *ptr) {
 	if (ptr->size == 0) return;
-	int *mem = (int *) (ptr + 1);
+	char *mem = (void *) (ptr) + sizeof(struct metadata);
 	int i;
-	*mem = 0;
+	*mem = '\0';
 	for (i = 1; i < ptr->size; i++) {
 		mem++;
-		*mem = 0;
+		*mem = '\0';
 	}
-
+	// printf("Cleared %d bytes.\n", i);
 }
+
+/* Prints info about the contents of the metaList. */
+void print_list() {
+	struct metadata *m = metaList.tail->prev;
+	printf("MetaList:\n");
+	while (m != metaList.head) {
+		if (m->is_free) {
+			printf("  FREE  ");
+		} else {
+			printf("  USED  ");
+		}
+		printf("Size: %d   *", m->size);
+		uint *p = (void *) m + sizeof(struct metadata) + m->size - 4;
+		int i;
+		for (i = 0; i < m->size/4; i++) {
+			printf(p);
+			p--;
+		}
+		printf("*\n");
+		m = m->prev;
+	}
+}
+
 void *mm_realloc(void *ptr, size_t size) {
     /* YOUR CODE HERE */
-    return NULL;
+    if (ptr == NULL) return mm_malloc(size);
+    struct metadata *a = ptr - sizeof(struct metadata);
+    mm_free(ptr);
+    if (size == 0) return NULL;
+    void *newptr = mm_malloc(size);
+    if (newptr == NULL) {
+    	void *tmpptr = mm_malloc(a->size);
+    	memcopy(ptr, tmpptr);
+    	ptr = tmpptr;
+    	return NULL;
+    } else {
+    	memcopy(ptr, newptr);
+    	return newptr;
+    }
+}
+
+/* Copies the contents of block A into block B,
+	and zeros out the remaining space in block B. */
+void memcopy(void *a, void *b) {
+	struct metadata *aa = a - sizeof(struct metadata);
+	struct metadata *bb = b - sizeof(struct metadata);
+	if (bb->size == 0) return;
+	char *p_a = a;
+	char *p_b = b;
+	int i;
+	for (i = 0; i < aa->size; i++) {
+		if (i >= bb->size) break;
+		*p_b = *p_a;
+		p_a++;
+		p_b++;
+	}
+	for (; i < bb->size; i++) {
+		*p_b = '\0';
+		p_b++;
+	}
 }
 
 void mm_free(void *ptr) {
     /* YOUR CODE HERE */
+    if (ptr == NULL) return;
+    int metasize = sizeof(struct metadata);
+    struct metadata *m = ptr - metasize;
+    m->is_free = 1;
+    if (m->prev->is_free) {
+    	m->prev->prev->next = m;
+    	m->size += metasize + m->prev->size;
+    	m->prev = m->prev->prev;
+    }
+    if (m->next->is_free) {
+    	m->next->next->prev = m;
+    	m->size += metasize + m->next->size;
+    	m->next = m->next->next;
+    }
 }

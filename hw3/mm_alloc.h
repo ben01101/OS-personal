@@ -23,7 +23,8 @@ struct list {
 void list_init(struct list *l);
 struct metadata *split_data_block(struct metadata *current, int size);
 void mm_clear(struct metadata *ptr);
-
+void print_list();
+void memcopy(void *a, void *b);
 
 void *mm_malloc(size_t size);
 void *mm_realloc(void *ptr, size_t size);
