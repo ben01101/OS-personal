@@ -59,9 +59,10 @@ void *mm_malloc(size_t size) {
     	}
     	block_to_use = block_to_use->next;
     }
-    struct metadata *this_block = sbrk (metasize + size);
+
+	struct metadata *this_block = sbrk (metasize + size);
     // printf("Adding block.\n");
-    if (this_block == NULL) return NULL;
+    if (this_block == (void *) -1) return NULL;
     this_block->size = size;
     this_block->is_free = 0;
     this_block->prev = metaList.tail->prev;

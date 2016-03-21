@@ -73,7 +73,7 @@ int main() {
     data = mm_realloc(data, sizeof(int) * 1);
     print_list();
 
-
+    int *data4 = (int*) mm_malloc(sizeof(int) * 100000000000000000000000);
 
 
     mm_free(data);
