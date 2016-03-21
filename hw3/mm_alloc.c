@@ -12,6 +12,7 @@
 static struct list metaList;
 static struct metadata start;
 static struct metadata end;
+static int reallocating = 0;
 
 /* Initialize the metaList. */
 void list_init(struct list *l) {
@@ -50,7 +51,7 @@ void *mm_malloc(size_t size) {
     				// printf("Reusing block.\n");
     				block_to_use->size = size;
     				block_to_use->is_free = 0;
-    				mm_clear(block_to_use);
+    				if (!reallocating) mm_clear(block_to_use);
     				return block_to_use + 1;
     				// if (s == size) {
     				// 	// Definitely use this block.
@@ -71,7 +72,7 @@ void *mm_malloc(size_t size) {
     metaList.tail->prev->next = this_block;
     metaList.tail->prev = this_block;
 
-    mm_clear(this_block);
+    if (!reallocating) mm_clear(this_block);
     return this_block + 1;
 }
 
@@ -101,7 +102,7 @@ struct metadata *split_data_block(struct metadata *current, int size) {
 	new->next = old;
 	new->prev = current->prev;
 
-	mm_clear(new);
+	if (!reallocating) mm_clear(new);
 	return new;
 }
 
@@ -141,17 +142,21 @@ void print_list() {
 void *mm_realloc(void *ptr, size_t size) {
     /* YOUR CODE HERE */
     if (ptr == NULL) return mm_malloc(size);
-    struct metadata *a = ptr - sizeof(struct metadata);
+    int memsize = sizeof(struct metadata);
+    struct metadata *a = ptr - memsize;
     mm_free(ptr);
     if (size == 0) return NULL;
+	reallocating = 1;
     void *newptr = mm_malloc(size);
     if (newptr == NULL) {
-    	void *tmpptr = ptr; 
+    	struct metadata *tmp = a;
     	ptr = mm_malloc(a->size);
-    	memcopy(tmpptr, ptr);
+    	reallocating = 0;
+    	memcopy(((void *) tmp) + memsize, ptr);
     	// ptr = tmpptr;
-    	return ptr;
+    	return NULL;
     } else {
+    	reallocating = 0;
     	memcopy(ptr, newptr);
     	return newptr;
     }

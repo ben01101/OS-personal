@@ -80,13 +80,16 @@ int main() {
 
 
     int *data4 = (int*) mm_malloc(sizeof(int) * 10);
+    data4[0] = 0x6e;
     print_list();
     int *data5 = (int*) mm_malloc(sizeof(int) * 10);
+    data5[0] = 0x65;
     print_list();
     // int *data4 = (int*) mm_malloc(sizeof(int) * 100000000000000000000000);
     data4 = mm_realloc(data4, sizeof(int) * 20);
     print_list();
     int *data6 = (int*) mm_malloc(sizeof(int) * 10);
+    data6[0] = 0x42;
     print_list();
     int *data7 = mm_realloc(data4, sizeof(int) * 100000000000000000000000);
 
