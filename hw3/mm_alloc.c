@@ -47,6 +47,7 @@ void *mm_malloc(size_t size) {
     		} else {
     			if (s >= size) {
     				// Perhaps reuse this block.
+    				// printf("Reusing block.\n");
     				block_to_use->size = size;
     				block_to_use->is_free = 0;
     				mm_clear(block_to_use);
@@ -82,7 +83,7 @@ struct metadata *split_data_block(struct metadata *current, int size) {
 	// assert(current->is_free);
 	// assert(current->size >= size + metasize);
 
-	// printf("splitting\n");
+	printf("splitting\n");
 	struct metadata *new;
 	struct metadata *old;
 	old = (void *) (current) + metasize + size;
@@ -109,10 +110,8 @@ void mm_clear(struct metadata *ptr) {
 	if (ptr->size == 0) return;
 	char *mem = (void *) (ptr) + sizeof(struct metadata);
 	int i;
-	*mem = '\0';
-	for (i = 1; i < ptr->size; i++) {
-		mem++;
-		*mem = '\0';
+	for (i = 0; i < ptr->size; i = i + 1) {
+		mem[i] = '\0';
 	}
 	// printf("Cleared %d bytes.\n", i);
 }
@@ -147,9 +146,10 @@ void *mm_realloc(void *ptr, size_t size) {
     if (size == 0) return NULL;
     void *newptr = mm_malloc(size);
     if (newptr == NULL) {
-    	void *tmpptr = mm_malloc(a->size);
-    	memcopy(ptr, tmpptr);
-    	ptr = tmpptr;
+    	void *tmpptr = ptr; 
+    	ptr = mm_malloc(a->size);
+    	memcopy(tmpptr, ptr);
+    	// ptr = tmpptr;
     	return NULL;
     } else {
     	memcopy(ptr, newptr);
@@ -166,15 +166,12 @@ void memcopy(void *a, void *b) {
 	char *p_a = a;
 	char *p_b = b;
 	int i;
-	for (i = 0; i < aa->size; i++) {
+	for (i = 0; i < aa->size; i = i + 1) {
 		if (i >= bb->size) break;
-		*p_b = *p_a;
-		p_a++;
-		p_b++;
+		p_b[i] = p_a[i];
 	}
-	for (; i < bb->size; i++) {
-		*p_b = '\0';
-		p_b++;
+	for (; i < bb->size; i = i + 1) {
+		p_b[i] = '\0';
 	}
 }
 

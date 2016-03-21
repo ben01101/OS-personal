@@ -47,39 +47,61 @@ int main() {
     load_alloc_functions();
 
     // print_list();
-    int *data = (int*) mm_malloc(sizeof(int));
-    int *data2 = (int*) mm_malloc(sizeof(int) * 3);
-    int *data3 = (int*) mm_malloc(sizeof(int));
-    assert(data != NULL);
-    printf("sizeof(int) = %lu\n", sizeof(int));
-    printf("sizeof(char) = %lu\n", sizeof(char));
-    print_list();
-    data[0] = 0x162;
-    data2[0] = 0x6e;
-    data2[1] = 0x65;
-    data2[2] = 0x42;
+    // int *data = (int*) mm_malloc(sizeof(int));
+    // int *data2 = (int*) mm_malloc(sizeof(int) * 3);
+    // int *data3 = (int*) mm_malloc(sizeof(int));
+    // assert(data != NULL);
+    // printf("sizeof(int) = %lu\n", sizeof(int));
+    // printf("sizeof(char) = %lu\n", sizeof(char));
+    // printf("sizeof(short) = %lu\n", sizeof(short));
+    // print_list();
+    // data[0] = 0x162;
+    // data2[0] = 0x6e;
+    // data2[1] = 0x65;
+    // data2[2] = 0x42;
+
+    /* Shows writes can bleed into other sections. */
     // data2[3] = 0x78;
     // data2[4] = 0x78;
     // data2[9] = 0x78;
     // mm_free(data2);
     // print_list();
-    print_list();
-    data = mm_realloc(data, sizeof(int) * 2);
-    print_list();
-    data = mm_realloc(data, 0);
-    print_list();
-    data = mm_realloc(NULL, sizeof(int) * 3);
-    print_list();
-    data = mm_realloc(data, sizeof(int) * 1);
-    print_list();
-
-    int *data4 = (int*) mm_malloc(sizeof(int) * 100000000000000000000000);
 
 
-    mm_free(data);
-    mm_free(data2);
     // print_list();
-    mm_free(data3);
+    // data = mm_realloc(data, sizeof(int) * 2);
+    // print_list();
+    // data = mm_realloc(data, 0);
+    // print_list();
+    // data = mm_realloc(NULL, sizeof(int) * 3);
+    // print_list();
+    // data = mm_realloc(data, sizeof(int) * 1);
+    // print_list();
+
+
+    int *data4 = (int*) mm_malloc(sizeof(int) * 10);
+    print_list();
+    int *data5 = (int*) mm_malloc(sizeof(int) * 10);
+    print_list();
+    // int *data4 = (int*) mm_malloc(sizeof(int) * 100000000000000000000000);
+    data4 = mm_realloc(data4, sizeof(int) * 20);
+    print_list();
+    int *data6 = (int*) mm_malloc(sizeof(int) * 10);
+    print_list();
+    int *data7 = mm_realloc(data4, sizeof(int) * 100000000000000000000000);
+
+    print_list();
+
+    // mm_free(data);
+    // mm_free(data2);
+    // mm_free(data3);
+    mm_free(data4);
+    print_list();
+    mm_free(data5);
+    print_list();
+    mm_free(data6);
+    print_list();
+    mm_free(data7);
     print_list();
     printf("malloc test successful!\n");
     return 0;
