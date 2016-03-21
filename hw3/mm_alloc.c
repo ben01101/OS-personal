@@ -150,7 +150,7 @@ void *mm_realloc(void *ptr, size_t size) {
     	ptr = mm_malloc(a->size);
     	memcopy(tmpptr, ptr);
     	// ptr = tmpptr;
-    	return NULL;
+    	return ptr;
     } else {
     	memcopy(ptr, newptr);
     	return newptr;
